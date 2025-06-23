@@ -1,8 +1,4 @@
 (function () {
-  const baitScript = document.createElement('script');
-  baitScript.src = 'https://connect.facebook.net/en_US/fbevents.js';
-  baitScript.async = true;
-
   let modalShown = false;
 
   function showModal() {
@@ -58,28 +54,36 @@
     document.body.appendChild(overlay);
   }
 
-  baitScript.onerror = (e) => {
-    const src = e?.target?.src;
+  function createBaitScript(src) {
+    const baitScript = document.createElement('script');
+    baitScript.src = src;
+    baitScript.async = true;
 
-    // Verificamos si la URL fue bloqueada o simplemente no existe
-    fetch(src, { method: 'HEAD' })
-      .then((res) => {
-        if (res.ok) {
-          console.log('[🚫] Script bloqueado por AdBlock (status:', res.status, ')');
+    baitScript.onerror = (e) => {
+      const failedSrc = e?.target?.src;
+
+      fetch(failedSrc, { method: 'HEAD' })
+        .then((res) => {
+          if (res.ok) {
+            console.log(`[🚫] Script bloqueado por AdBlock (${failedSrc})`);
+            showModal();
+          } else {
+            console.log(`[📛] Script no encontrado (${res.status})`);
+          }
+        })
+        .catch((err) => {
+          console.log(`[🚫] Script posiblemente bloqueado (${failedSrc})`, err);
           showModal();
-        } else {
-          console.log('[📛] Script no encontrado (status:', res.status, ')');
-        }
-      })
-      .catch((err) => {
-        console.log('[🚫] Script posiblemente bloqueado por AdBlock (network error)', err);
-        showModal();
-      });
-  };
+        });
+    };
 
-  baitScript.onload = () => {
-    console.log('[✅] Script cargado correctamente (no bloqueado)');
-  };
+    baitScript.onload = () => {
+      console.log(`[✅] Script cargado correctamente (${src})`);
+    };
 
-  document.body.appendChild(baitScript);
+    document.body.appendChild(baitScript);
+  }
+
+  createBaitScript('https://pagead2.googlesyndication.com/pagead/show_ads.js');
+  createBaitScript('https://stats.g.doubleclick.net/dc.js');
 })();
